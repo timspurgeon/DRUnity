@@ -1,0 +1,103 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\UnityProjects\\Dungeon Runners2\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{89C6BD06-6514-7591-D09B-8A05FE550BFE}|Server.csproj|C:\\UnityProjects\\Dungeon Runners2\\assets\\server\\gcobject.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{89C6BD06-6514-7591-D09B-8A05FE550BFE}|Server.csproj|solutionrelative:assets\\server\\gcobject.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{89C6BD06-6514-7591-D09B-8A05FE550BFE}|Server.csproj|C:\\UnityProjects\\Dungeon Runners2\\assets\\server\\gameserver\\gameserver.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{89C6BD06-6514-7591-D09B-8A05FE550BFE}|Server.csproj|solutionrelative:assets\\server\\gameserver\\gameserver.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{89C6BD06-6514-7591-D09B-8A05FE550BFE}|Server.csproj|C:\\UnityProjects\\Dungeon Runners2\\assets\\server\\auth\\authserver.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{89C6BD06-6514-7591-D09B-8A05FE550BFE}|Server.csproj|solutionrelative:assets\\server\\auth\\authserver.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F53085EE-6FC8-153E-B3C7-7AC003FCB0FB}|Assembly-CSharp.csproj|C:\\UnityProjects\\Dungeon Runners2\\assets\\bootstrap\\serverbootstrap.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{F53085EE-6FC8-153E-B3C7-7AC003FCB0FB}|Assembly-CSharp.csproj|solutionrelative:assets\\bootstrap\\serverbootstrap.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{89C6BD06-6514-7591-D09B-8A05FE550BFE}|Server.csproj|C:\\UnityProjects\\Dungeon Runners2\\assets\\server\\common\\utilities.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{89C6BD06-6514-7591-D09B-8A05FE550BFE}|Server.csproj|solutionrelative:assets\\server\\common\\utilities.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 1,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "Utilities.cs",
+              "DocumentMoniker": "C:\\UnityProjects\\Dungeon Runners2\\Assets\\Server\\Common\\Utilities.cs",
+              "RelativeDocumentMoniker": "Assets\\Server\\Common\\Utilities.cs",
+              "ToolTip": "C:\\UnityProjects\\Dungeon Runners2\\Assets\\Server\\Common\\Utilities.cs",
+              "RelativeToolTip": "Assets\\Server\\Common\\Utilities.cs",
+              "ViewState": "AQIAABwBAAAAAAAAAAAswDkBAAAAAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-09-21T16:41:43.31Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "GCObject.cs",
+              "DocumentMoniker": "C:\\UnityProjects\\Dungeon Runners2\\Assets\\Server\\GCObject.cs",
+              "RelativeDocumentMoniker": "Assets\\Server\\GCObject.cs",
+              "ToolTip": "C:\\UnityProjects\\Dungeon Runners2\\Assets\\Server\\GCObject.cs",
+              "RelativeToolTip": "Assets\\Server\\GCObject.cs",
+              "ViewState": "AQIAAIEAAAAAAAAAAAAkwJ0AAAABAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-09-21T16:24:34.576Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "ServerBootstrap.cs",
+              "DocumentMoniker": "C:\\UnityProjects\\Dungeon Runners2\\Assets\\Bootstrap\\ServerBootstrap.cs",
+              "RelativeDocumentMoniker": "Assets\\Bootstrap\\ServerBootstrap.cs",
+              "ToolTip": "C:\\UnityProjects\\Dungeon Runners2\\Assets\\Bootstrap\\ServerBootstrap.cs",
+              "RelativeToolTip": "Assets\\Bootstrap\\ServerBootstrap.cs",
+              "ViewState": "AQIAAAIAAAAAAAAAAAAYwB0AAAAAAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-09-21T15:57:23.155Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "GameServer.cs",
+              "DocumentMoniker": "C:\\UnityProjects\\Dungeon Runners2\\Assets\\Server\\GameServer\\GameServer.cs",
+              "RelativeDocumentMoniker": "Assets\\Server\\GameServer\\GameServer.cs",
+              "ToolTip": "C:\\UnityProjects\\Dungeon Runners2\\Assets\\Server\\GameServer\\GameServer.cs",
+              "RelativeToolTip": "Assets\\Server\\GameServer\\GameServer.cs",
+              "ViewState": "AQIAAAcCAAAAAAAAAAAkwCQCAAAJAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-09-19T21:46:22.582Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "AuthServer.cs",
+              "DocumentMoniker": "C:\\UnityProjects\\Dungeon Runners2\\Assets\\Server\\Auth\\AuthServer.cs",
+              "RelativeDocumentMoniker": "Assets\\Server\\Auth\\AuthServer.cs",
+              "ToolTip": "C:\\UnityProjects\\Dungeon Runners2\\Assets\\Server\\Auth\\AuthServer.cs",
+              "RelativeToolTip": "Assets\\Server\\Auth\\AuthServer.cs",
+              "ViewState": "AQIAAMgAAAAAAAAAAAAkwOQAAAAAAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-09-19T16:46:40.287Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
