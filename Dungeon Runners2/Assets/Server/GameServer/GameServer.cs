@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
@@ -26,7 +26,7 @@ namespace Server.Game
 
         // Add these fields for persistent character creation
         private readonly ConcurrentDictionary<string, List<GCObject>> _persistentCharacters = new();
-        private readonly ConcurrentDictionary<string, bool> _characterCreationPending = new();
+      //  private readonly ConcurrentDictionary<string, bool> _characterCreationPending = new();
 
         private bool _gameLoopRunning = false;
         private readonly object _gameLoopLock = new object();
@@ -360,16 +360,16 @@ namespace Server.Game
             Debug.Log($"[Game] HandleInitialLogin: Starting character flow for user '{user}'");
 
             // Check if this is a reconnect after character creation
-            await HandleCharacterCreationReconnect(conn);
+            await StartCharacterFlow(conn);
 
             // If no character creation pending, start normal flow
-            if (!_characterCreationPending.ContainsKey(conn.LoginName) || !_characterCreationPending[conn.LoginName])
-            {
-                await StartCharacterFlow(conn);
-            }
+            //  if (!_characterCreationPending.ContainsKey(conn.LoginName) || !_characterCreationPending[conn.LoginName])
+            //  {
+            //      await StartCharacterFlow(conn);
+            // }
         }
 
-        private async Task HandleCharacterCreationReconnect(RRConnection conn)
+      /*  private async Task HandleCharacterCreationReconnect(RRConnection conn)
         {
             Debug.Log($"[Game] HandleCharacterCreationReconnect: Checking for pending creation for {conn.LoginName}");
 
@@ -398,7 +398,7 @@ namespace Server.Game
                 await Task.Delay(50);
                 await SendGroupConnectedResponse(conn);
             }
-        }
+        }*/
 
         private async Task HandleChannelMessage(RRConnection conn, byte[] data)
         {
@@ -484,70 +484,64 @@ namespace Server.Game
 
         private async Task SendCharacterConnectedResponse(RRConnection conn)
         {
-            Debug.Log($"[Game] SendCharacterConnectedResponse: For client {conn.ConnId} - matching Go server exactly");
+            Debug.Log($"[Game] SendCharacterConnectedResponse: For client {conn.ConnId} - creating 2 characters like Go server");
 
-            // Match Go server exactly: 10 01 00 00 01 00 00 0a 03
-            var response = new byte[] { 0x10, 0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x0A, 0x03 };
+            // Create 2 characters immediately like Go server does in handleCharacterConnected
+            if (!_persistentCharacters.ContainsKey(conn.LoginName))
+            {
+                var characters = new List<GCObject>();
+                for (int i = 0; i < 2; i++)
+                {
+                    var character = Objects.NewPlayer($"{conn.LoginName}");
+                    character.ID = (uint)(Objects.NewID());
+                    characters.Add(character);
+                }
+                _persistentCharacters[conn.LoginName] = characters;
+                Debug.Log($"[Game] SendCharacterConnectedResponse: Created 2 characters for {conn.LoginName}");
+            }
 
-            await conn.Stream.WriteAsync(response, 0, response.Length);
-            Debug.Log($"[Game] SendCharacterConnectedResponse: Sent exact Go server response: {BitConverter.ToString(response)}");
+            var w = new LEWriter();
+            w.WriteByte(4);  // Character channel
+            w.WriteByte(0);  // Character connected
+            await SendCompressedAResponse(conn, 0x01, 0x0F, w.ToArray());
+            Debug.Log("[Game] Sent character connected");
         }
+
         private async Task SendCharacterList(RRConnection conn)
         {
             Debug.Log($"[Game] SendCharacterList: For client {conn.ConnId} ({conn.LoginName})");
 
-            if (_persistentCharacters.TryGetValue(conn.LoginName, out var existingChars) && existingChars.Count > 0)
-            {
-                Debug.Log($"[Game] SendCharacterList: Found {existingChars.Count} existing characters");
-                await SendExistingCharacterList(conn, existingChars);
-            }
-            else
-            {
-                Debug.Log($"[Game] SendCharacterList: No characters found, creating character immediately");
+            var characters = _persistentCharacters[conn.LoginName];
+            Debug.Log($"[Game] SendCharacterList: Sending {characters.Count} pre-made characters");
 
-                // Create character immediately like Go server does
-                var newCharacter = Objects.NewPlayer($"{conn.LoginName}");
-                newCharacter.ID = (uint)(conn.ConnId * 100);
-
-                var characterList = new List<GCObject> { newCharacter };
-                _persistentCharacters[conn.LoginName] = characterList;
-
-                Debug.Log($"[Game] SendCharacterList: Created character {newCharacter.Name} (ID: {newCharacter.ID})");
-
-                // Now send the character list with the new character
-                await SendExistingCharacterList(conn, characterList);
-            }
-        }
-
-        private async Task SendExistingCharacterList(RRConnection conn, List<GCObject> characters)
-        {
-            Debug.Log($"[Game] SendExistingCharacterList: Sending {characters.Count} characters with minimal format");
-
-            var response = new LEWriter();
-            response.WriteByte(4);   // Character channel
-            response.WriteByte(3);   // Character list
-            response.WriteByte((byte)characters.Count);
+            var w = new LEWriter();
+            w.WriteByte(4);   // Character channel
+            w.WriteByte(3);   // Character list
+            w.WriteByte((byte)characters.Count);
 
             foreach (var character in characters)
             {
-                response.WriteUInt32(character.ID);
-                Debug.Log($"[Game] SendExistingCharacterList: Writing character ID {character.ID}");
-
-                // Minimal character data - just name and basic structure
-                response.WriteByte(0x01); // Object type
-                var nameBytes = Encoding.UTF8.GetBytes(character.Name);
-                response.WriteBytes(nameBytes);
-                response.WriteByte(0x00); // Null terminator
-
-                response.WriteByte(0x01);
-                response.WriteByte(0x01);
-                response.WriteByte(0x00); // End marker
+                w.WriteUInt32(character.ID);
+                Debug.Log($"[Game] SendCharacterList: Writing character ID {character.ID} ({character.Name})");
+                WritePlayerWithGCObject(w, character.Name);
             }
 
-            await SendMessage0x10(conn, 0x01, response.ToArray());
-            Debug.Log($"[Game] SendExistingCharacterList: Sent minimal character list");
+            await SendCompressedAResponse(conn, 0x01, 0x0F, w.ToArray());
+            Debug.Log($"[Game] SendCharacterList: Sent character list with {characters.Count} characters");
         }
+        private async Task SendToCharacterCreation(RRConnection conn)
+        {
+            Debug.Log($"[Game] SendToCharacterCreation: Sending client {conn.ConnId} to character creation screen");
 
+            // Send character creation initiation message
+            var createMessage = new LEWriter();
+            createMessage.WriteByte(4);  // Character channel
+            createMessage.WriteByte(2);  // Character create message
+            createMessage.WriteByte(0);  // Initiate creation mode
+
+            await SendCompressedAResponse(conn, 0x01, 0x0F, createMessage.ToArray());
+            Debug.Log($"[Game] SendToCharacterCreation: Sent character creation initiation");
+        }
         private async Task HandleCharacterPlay(RRConnection conn, byte[] data)
         {
             Debug.Log($"[Game] HandleCharacterPlay: For client {conn.ConnId}");
@@ -579,8 +573,9 @@ namespace Server.Game
                     Debug.Log($"[Game] HandleCharacterPlay: Sent character play success with character data");
 
                     // After successful character play, initiate world entry
+                    // After successful character play, send to character creation
                     await Task.Delay(100);
-                    await InitiateWorldEntry(conn);
+                    await SendToCharacterCreation(conn);
                     return;
                 }
             }
