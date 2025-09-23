@@ -22,10 +22,10 @@ namespace Server.Game
         private readonly ConcurrentDictionary<int, RRConnection> _connections = new();
         private readonly ConcurrentDictionary<int, string> _users = new();
         private readonly ConcurrentDictionary<int, uint> _peerId24 = new();
-        private readonly ConcurrentDictionary<int, List<GCObject>> _playerCharacters = new();
+        private readonly ConcurrentDictionary<int, List<Server.Game.GCObject>> _playerCharacters = new();
 
         // Add these fields for persistent character creation
-        private readonly ConcurrentDictionary<string, List<GCObject>> _persistentCharacters = new();
+        private readonly ConcurrentDictionary<string, List<Server.Game.GCObject>> _persistentCharacters = new();
         //  private readonly ConcurrentDictionary<string, bool> _characterCreationPending = new();
 
         private bool _gameLoopRunning = false;
@@ -381,10 +381,10 @@ namespace Server.Game
                   Debug.Log($"[Game] HandleCharacterCreationReconnect: Creating character for {conn.LoginName}");
 
                   // Create the character (simulating what the Go server does)
-                  var newCharacter = Objects.NewPlayer($"{conn.LoginName}_Hero");
+                  var newCharacter = Server.Game.Objects.NewPlayer($"{conn.LoginName}_Hero");
                   newCharacter.ID = (uint)(conn.ConnId * 100);
 
-                  var characterList = new List<GCObject> { newCharacter };
+                  var characterList = new List<Server.Game.GCObject> { newCharacter };
                   _persistentCharacters[conn.LoginName] = characterList;
                   _characterCreationPending[conn.LoginName] = false;
 
@@ -504,15 +504,15 @@ namespace Server.Game
                 if (!_persistentCharacters.ContainsKey(conn.LoginName))
                 {
                     Debug.Log($"[Game] SendCharacterConnectedResponse: *** CREATING CHARACTERS *** No existing characters for {conn.LoginName}");
-                    var characters = new List<GCObject>();
+                    var characters = new List<Server.Game.GCObject>();
                     for (int i = 0; i < 2; i++)
                     {
-                        Debug.Log($"[Game] SendCharacterConnectedResponse: *** CREATING CHARACTER {i + 1} *** Calling Objects.NewPlayer");
+                        Debug.Log($"[Game] SendCharacterConnectedResponse: *** CREATING CHARACTER {i + 1} *** Calling Server.Game.Objects.NewPlayer");
 
                         try
                         {
-                            var character = Objects.NewPlayer($"{conn.LoginName}");
-                            character.ID = (uint)(Objects.NewID());
+                            var character = Server.Game.Objects.NewPlayer($"{conn.LoginName}");
+                            character.ID = (uint)(Server.Game.Objects.NewID());
                             characters.Add(character);
                             Debug.Log($"[Game] SendCharacterConnectedResponse: *** CHARACTER {i + 1} CREATED *** ID: {character.ID}, Type: {character.GCType}");
                         }
@@ -544,14 +544,14 @@ namespace Server.Game
             }
         }
 
-        private void WriteGoSendPlayer(LEWriter body, GCObject character)
+        private void WriteGoSendPlayer(LEWriter body, Server.Game.GCObject character)
         {
             Debug.Log($"[Game] WriteGoSendPlayer: *** ENTRY *** Writing Go sendPlayer format for character ID {character.ID}");
 
             try
             {
-                Debug.Log($"[Game] WriteGoSendPlayer: *** STEP 1 *** Calling Objects.LoadAvatar()");
-                var avatar = Objects.LoadAvatar();
+                Debug.Log($"[Game] WriteGoSendPlayer: *** STEP 1 *** Calling Server.Game.Objects.LoadAvatar()");
+                var avatar = Server.Game.Objects.LoadAvatar();
                 Debug.Log($"[Game] WriteGoSendPlayer: *** STEP 1 SUCCESS *** Avatar created - ID: {avatar.ID}, Type: {avatar.GCType}, Children: {avatar.Children.Count}");
 
                 Debug.Log($"[Game] WriteGoSendPlayer: *** STEP 2 *** Writing main character object (without avatar as child)");
@@ -617,7 +617,9 @@ namespace Server.Game
 
                     try
                     {
-                        body.WriteUInt32(character.ID); // character.EntityProperties.ID
+                        // REMOVED: client expects GCObject first in each entry
+
+                        // body.WriteUInt32(character.ID);
                         Debug.Log($"[Game] SendCharacterList: *** CHARACTER {i + 1} *** Wrote ID, calling WriteGoSendPlayer");
                         WriteGoSendPlayer(body, character); // sendPlayer(character, conn.Client, body)
                         Debug.Log($"[Game] SendCharacterList: *** CHARACTER {i + 1} *** WriteGoSendPlayer complete");
@@ -744,15 +746,17 @@ namespace Server.Game
             var w = new LEWriter();
             w.WriteByte(4);   // Channel 4  
             w.WriteByte(3);   // Character list message
-            w.WriteByte(1);   // 1 character now
+            w.WriteByte(1);   // 1 character
 
-            w.WriteUInt32(charId);
-            //WritePlayerWithGCObject(w, charName);
+            // Build a minimal GCObject for the new character and write in the same format as SendCharacterList
+            var newCharacter = Objects.NewPlayer(charName);
+            newCharacter.ID = charId;
+
+            WriteGoSendPlayer(w, newCharacter);
 
             await SendCompressedAResponse(conn, 0x01, 0x0F, w.ToArray());
-            Debug.Log($"[Game] SendUpdatedCharacterList: Sent updated character list with new character");
+            Debug.Log($"[Game] SendUpdatedCharacterList: Sent updated character list with new character (ID {charId})");
         }
-
         private async Task SendGroupConnectedResponse(RRConnection conn)
         {
             Debug.Log($"[Game] SendGroupConnectedResponse: For client {conn.ConnId}");
@@ -1094,22 +1098,23 @@ namespace Server.Game
                 Debug.Log($"[Game] SendMessage0x10: Body data: {BitConverter.ToString(body)}");
 
             uint clientId = GetClientId24(conn.ConnId);
-            uint bodyLen = (uint)(body?.Length ?? 0);
-            Debug.Log($"[Game] SendMessage0x10: Using client ID 0x{clientId:X6}, total bodyLen={bodyLen}");
+            uint bodyLen = (uint)(body?.Length ?? 0);   // ✅ body only — channel is NOT included
+
+            Debug.Log($"[Game] SendMessage0x10: Using client ID 0x{clientId:X6}, bodyLen={bodyLen}");
 
             var w = new LEWriter();
             w.WriteByte(0x10);
-            w.WriteUInt24((int)clientId);
-            w.WriteUInt24((int)bodyLen);
+            w.WriteUInt24((int)clientId);                // 24-bit LE
+            w.WriteUInt24((int)bodyLen);                 // 24-bit LE body length
             w.WriteByte(channel);
-            if (body != null && body.Length > 0) w.WriteBytes(body);
+            if (bodyLen > 0)                             // ✅ write body if present
+                w.WriteBytes(body);
 
             byte[] payload = w.ToArray();
             Debug.Log($"[Game] SendMessage0x10: Built payload ({payload.Length} bytes): {BitConverter.ToString(payload)}");
 
             await conn.Stream.WriteAsync(payload, 0, payload.Length);
             Debug.Log($"[Game] SendMessage0x10: Sent {payload.Length} bytes to client {conn.ConnId}");
-
             return payload;
         }
 
