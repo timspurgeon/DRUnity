@@ -246,8 +246,12 @@ namespace Server.Game
                 return;
             }
 
+            // FIXED: Read the 0x0A frame structure correctly
+            // Frame format: [0x0A][clientId:3][packetLen:4][dest:1][msgType:1][zero:1][unclen:4][compressed_data]
+
             uint clientId = reader.ReadUInt24();
             Debug.Log($"[Game] CRITICAL DEBUG: Client sent ID: 0x{clientId:X6}");
+
             uint packetLen = reader.ReadUInt32();
             byte dest = reader.ReadByte();
             byte msgTypeA = reader.ReadByte();
@@ -259,12 +263,34 @@ namespace Server.Game
             _peerId24[conn.ConnId] = clientId;
             Debug.Log($"[Game] HandleCompressedA: Stored client ID 0x{clientId:X6} for connection {conn.ConnId}");
 
+            // FIXED: Calculate compressed length correctly
+            // packetLen includes: dest(1) + msgType(1) + zero(1) + unclen(4) + compressed_data
+            // So compressed_data_length = packetLen - 7
             int compLen = (int)packetLen - 7;
             Debug.Log($"[Game] HandleCompressedA: Calculated compressed length: {compLen}");
 
-            if (compLen < 0 || reader.Remaining < compLen)
+            if (compLen < 0)
             {
-                Debug.LogError($"[Game] HandleCompressedA: Invalid compressed length {compLen}, remaining data: {reader.Remaining}");
+                Debug.LogError($"[Game] HandleCompressedA: Invalid compressed length {compLen} - this means packetLen ({packetLen}) is too small");
+
+                // SPECIAL CASE: If compLen is 0 or negative, this might be an uncompressed message
+                if (compLen == 0 || unclen == 0)
+                {
+                    Debug.Log($"[Game] HandleCompressedA: Treating as uncompressed message with no body data");
+                    byte[] emptyData = Array.Empty<byte>();
+                    await ProcessUncompressedMessage(conn, dest, msgTypeA, emptyData);
+                    return;
+                }
+                else
+                {
+                    Debug.LogError($"[Game] HandleCompressedA: Cannot proceed with negative compressed length");
+                    return;
+                }
+            }
+
+            if (reader.Remaining < compLen)
+            {
+                Debug.LogError($"[Game] HandleCompressedA: Not enough data for compressed content - need {compLen}, have {reader.Remaining}");
                 return;
             }
 
@@ -275,7 +301,15 @@ namespace Server.Game
             byte[] uncompressed;
             try
             {
-                uncompressed = ZlibUtil.Inflate(compressed, unclen);
+                if (compLen == 0 || unclen == 0)
+                {
+                    // No compression, use empty data
+                    uncompressed = Array.Empty<byte>();
+                }
+                else
+                {
+                    uncompressed = ZlibUtil.Inflate(compressed, unclen);
+                }
                 Debug.Log($"[Game] HandleCompressedA: Decompressed to {uncompressed.Length} bytes (expected {unclen})");
                 Debug.Log($"[Game] HandleCompressedA: Uncompressed data: {BitConverter.ToString(uncompressed)}");
             }
@@ -285,34 +319,70 @@ namespace Server.Game
                 return;
             }
 
-            Debug.Log($"[Game] HandleCompressedA: Processing A message - dest=0x{dest:X2} sub=0x{msgTypeA:X2}");
+            await ProcessUncompressedMessage(conn, dest, msgTypeA, uncompressed);
+        }
+
+        private async Task ProcessUncompressedMessage(RRConnection conn, byte dest, byte msgTypeA, byte[] uncompressed)
+        {
+            Debug.Log($"[Game] ProcessUncompressedMessage: Processing A message - dest=0x{dest:X2} sub=0x{msgTypeA:X2}");
 
             if (msgTypeA != 0x00 && string.IsNullOrEmpty(conn.LoginName))
             {
-                Debug.LogError($"[Game] HandleCompressedA: Received msgTypeA 0x{msgTypeA:X2} before login for client {conn.ConnId}");
+                Debug.LogError($"[Game] ProcessUncompressedMessage: Received msgTypeA 0x{msgTypeA:X2} before login for client {conn.ConnId}");
                 return;
             }
 
             switch (msgTypeA)
             {
                 case 0x00:
-                    Debug.Log($"[Game] HandleCompressedA: Processing initial login (0x00) for client {conn.ConnId}");
+                    Debug.Log($"[Game] ProcessUncompressedMessage: Processing initial login (0x00) for client {conn.ConnId}");
                     await HandleInitialLogin(conn, uncompressed);
                     break;
                 case 0x02:
-                    Debug.Log($"[Game] HandleCompressedA: Processing secondary message (0x02) for client {conn.ConnId}");
-                    Debug.Log($"[Game] HandleCompressedA: Sending empty 0x02 response");
+                    Debug.Log($"[Game] ProcessUncompressedMessage: Processing secondary message (0x02) for client {conn.ConnId}");
+                    Debug.Log($"[Game] ProcessUncompressedMessage: Sending empty 0x02 response");
                     await SendCompressedAResponse(conn, 0x00, 0x02, Array.Empty<byte>());
                     break;
+                case 0x03:
+                    Debug.Log($"[Game] ProcessUncompressedMessage: Processing message type 0x03 for client {conn.ConnId}");
+                    // This might be a login continuation or session validation
+                    if (uncompressed.Length >= 4)
+                    {
+                        var reader = new LEReader(uncompressed);
+                        uint sessionToken = reader.ReadUInt32();
+                        Debug.Log($"[Game] ProcessUncompressedMessage: Found session token 0x{sessionToken:X8}");
+
+                        // Validate the session token and proceed with login
+                        if (GlobalSessions.TryConsume(sessionToken, out var user) || !string.IsNullOrEmpty(user))
+                        {
+                            conn.LoginName = user;
+                            _users[conn.ConnId] = user;
+                            Debug.Log($"[Game] ProcessUncompressedMessage: Auth OK for user '{user}' on client {conn.ConnId}");
+
+                            // Send ACK and continue with character flow
+                            var ack = new LEWriter();
+                            ack.WriteByte(0x03);
+                            await SendMessage0x10(conn, 0x0A, ack.ToArray());
+
+                            await Task.Delay(50);
+                            await StartCharacterFlow(conn);
+                        }
+                        else
+                        {
+                            Debug.LogError($"[Game] ProcessUncompressedMessage: Invalid session token 0x{sessionToken:X8}");
+                        }
+                    }
+                    break;
                 case 0x0F:
-                    Debug.Log($"[Game] HandleCompressedA: Processing channel messages (0x0F) for client {conn.ConnId}");
+                    Debug.Log($"[Game] ProcessUncompressedMessage: Processing channel messages (0x0F) for client {conn.ConnId}");
                     await HandleChannelMessage(conn, uncompressed);
                     break;
                 default:
-                    Debug.LogWarning($"[Game] HandleCompressedA: Unhandled msgTypeA 0x{msgTypeA:X2} for client {conn.ConnId}");
+                    Debug.LogWarning($"[Game] ProcessUncompressedMessage: Unhandled msgTypeA 0x{msgTypeA:X2} for client {conn.ConnId}");
                     break;
             }
         }
+
 
         private async Task HandleInitialLogin(RRConnection conn, byte[] data)
         {
