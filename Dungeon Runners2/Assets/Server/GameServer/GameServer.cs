@@ -650,66 +650,22 @@ namespace Server.Game
         // === Go-accurate sendPlayer: Player WITH Avatar as child, then Avatar again, then cosmetic tail ===
         private void WriteGoSendPlayer(LEWriter body, Server.Game.GCObject character)
         {
-            Debug.Log($"[Game] WriteGoSendPlayer: *** ENTRY *** Writing Go sendPlayer format for character ID {character.ID}");
+            // Don't clear children/properties - keep what NewPlayer() created
+            var avatar = Server.Game.Objects.LoadAvatar();
+            character.AddChild(avatar);  // Add avatar to existing children
 
-            try
-            {
-                Debug.Log($"[Game] WriteGoSendPlayer: *** STEP 1 *** Calling Server.Game.Objects.LoadAvatar()");
-                var avatar = Server.Game.Objects.LoadAvatar();
-                Debug.Log($"[Game] WriteGoSendPlayer: *** STEP 1 SUCCESS *** Avatar created - ID: {avatar.ID}, Type: {avatar.GCType}, Children: {avatar.Children.Count}");
+            character.WriteFullGCObject(body);
+            avatar.WriteFullGCObject(body);
 
-                character.AddChild(avatar);
-
-                Debug.Log($"[Game] WriteGoSendPlayer: *** STEP 2 *** Writing main character object (WITH avatar as child)");
-                var beforeCharacter = body.ToArray().Length;
-                character.WriteFullGCObject(body);
-                var afterCharacter = body.ToArray().Length;
-                int playerBytes = afterCharacter - beforeCharacter;
-                Debug.Log($"[Game] WriteGoSendPlayer: *** STEP 2 SUCCESS *** Wrote character, bytes added: {playerBytes}");
-
-                Debug.Log($"[Game] WriteGoSendPlayer: *** STEP 3 *** Writing avatar separately like Go server does");
-                var beforeAvatar = body.ToArray().Length;
-                avatar.WriteFullGCObject(body);
-                var afterAvatar = body.ToArray().Length;
-                int avatarBytes = afterAvatar - beforeAvatar;
-                Debug.Log($"[Game] WriteGoSendPlayer: *** STEP 3 SUCCESS *** Wrote avatar, bytes added: {avatarBytes}");
-
-                Debug.Log($"[Game] WriteGoSendPlayer: *** STEP 4 *** Writing additional data that Go server adds (cosmetic tail)");
-                var beforeTail = body.ToArray().Length;
-                // Go-accurate tail: 01 01 "Normal" 00 01 01 01 00 00 00
-                body.WriteByte(0x01);
-                body.WriteByte(0x01);
-                var normalBytes = Encoding.UTF8.GetBytes("Normal");
-                body.WriteBytes(normalBytes);
-                body.WriteByte(0x00);
-                body.WriteByte(0x01);
-                body.WriteByte(0x01);
-                body.WriteByte(0x01);
-                body.WriteByte(0x00);
-                body.WriteByte(0x00);
-                body.WriteByte(0x00);
-                var afterTail = body.ToArray().Length;
-                int tailBytes = afterTail - beforeTail;
-
-                var finalSize = body.ToArray().Length;
-                Debug.Log($"[Game] WriteGoSendPlayer: *** SUCCESS *** Completed Go format, totals: player={playerBytes} avatar={avatarBytes} tail={tailBytes} total={finalSize}");
-                Debug.Log($"[Game] WriteGoSendPlayer: *** SUCCESS *** Character children: {character.Children.Count}, Avatar children: {avatar.Children.Count}");
-
-                try
-                {
-                    bool removed = character.Children != null && character.Children.Remove(avatar);
-                    Debug.Log($"[Game] WriteGoSendPlayer: *** CLEANUP *** Removed temporary avatar child: {removed}");
-                }
-                catch (Exception cleanupEx)
-                {
-                    Debug.LogWarning($"[Game] WriteGoSendPlayer: Cleanup warning (non-fatal): {cleanupEx.Message}");
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"[Game] WriteGoSendPlayer: *** CRITICAL EXCEPTION *** {ex.Message}");
-                Debug.LogError($"[Game] WriteGoSendPlayer: *** STACK TRACE *** {ex.StackTrace}");
-            }
+            // Cosmetic tail exactly like Go
+            body.WriteByte(0x01);
+            body.WriteByte(0x01);
+            var normalBytes = Encoding.UTF8.GetBytes("Normal");
+            body.WriteBytes(normalBytes);
+            body.WriteByte(0x00);
+            body.WriteByte(0x01);
+            body.WriteByte(0x01);
+            body.WriteUInt32(0x01);
         }
 
         private async Task SendCharacterList(RRConnection conn)
