@@ -1,4 +1,4 @@
-// --- GameServer.cs (full, with all your Debug.Logs kept and new proof logs added) ---
+// --- GameServer.cs (full, with ALL your Debug.Logs kept and new proof logs added) ---
 using System;
 using System.Net.Sockets;
 using System.Text;
@@ -26,7 +26,7 @@ namespace Server.Game
         private readonly ConcurrentDictionary<int, RRConnection> _connections = new();
         private readonly ConcurrentDictionary<int, string> _users = new();
         private readonly ConcurrentDictionary<int, uint> _peerId24 = new();
-        // ✅ FIXED GENERIC BRACKETS HERE (this was the compile error)
+        // ✅ Fixed generic brackets here
         private readonly ConcurrentDictionary<int, List<Server.Game.GCObject>> _playerCharacters = new();
 
         // Tracks whether we've already sent a character list for this connection (watchdog / nudge uses this)
@@ -34,7 +34,7 @@ namespace Server.Game
 
         // Add these fields for persistent character creation
         private readonly ConcurrentDictionary<string, List<Server.Game.GCObject>> _persistentCharacters = new();
-        //  private readonly ConcurrentDictionary<string, bool> _characterCreationPending = new();
+        // private readonly ConcurrentDictionary<string, bool> _characterCreationPending = new();
 
         private bool _gameLoopRunning = false;
         private readonly object _gameLoopLock = new object();
@@ -423,6 +423,7 @@ namespace Server.Game
                 Debug.Log($"[Game] HandleInitialLogin: *** STEP 2 DATA *** Advance data ({advanceData.Length} bytes): {BitConverter.ToString(advanceData)}");
                 await SendCompressedAResponse(conn, 0x00, 0x03, advanceData);
                 Debug.Log($"[Game] HandleInitialLogin: *** STEP 2 COMPLETE *** Sent advance message");
+
                 Debug.Log("[Game] HandleInitialLogin: *** STEP 2b *** Nudge with empty A/0x02");
                 await SendCompressedAResponse(conn, 0x00, 0x02, Array.Empty<byte>());
                 await Task.Delay(75);
@@ -517,9 +518,7 @@ namespace Server.Game
                     }
                 });
 
-                // === Watchdog: if the client never sends 4/3, proactively send list after 1s ===
-
-                // Watchdog disabled: unsolicited 4/3 causes client disconnects (per latest logs)
+                // === Secondary A/0x02 ticks for clients that expect a "heartbeat" before asking for 4/3 ===
                 _ = Task.Run(async () =>
                 {
                     try
@@ -589,6 +588,11 @@ namespace Server.Game
 
         private async Task SendCharacterConnectedResponse(RRConnection conn)
         {
+            // Some client builds only ask for 4/3 after seeing A/0x02 once.
+            Debug.Log($"[Game] SendCharacterConnectedResponse: pre-nudge A/0x02");
+            await SendCompressedAResponse(conn, 0x00, 0x02, Array.Empty<byte>());
+            await Task.Delay(75);
+
             Debug.Log($"[Game] SendCharacterConnectedResponse: *** ENTRY *** For client {conn.ConnId} - creating 2 characters like Go server");
 
             try
@@ -633,7 +637,6 @@ namespace Server.Game
                     Debug.LogWarning($"[Game] SendCharacterConnectedResponse: Unexpected 4/0 header: {BitConverter.ToString(inner.Take(2).ToArray())}");
 
                 Debug.Log($"[SEND][A][prep] 4/0 using peer=0x{GetClientId24(conn.ConnId):X6} dest=0x01 sub=0x0F innerLen={inner.Length}");
-                Debug.Log($"[SEND][A][prep] 4/3 using peer=0x{GetClientId24(conn.ConnId):X6} dest=0x01 sub=0x0F innerLen={inner.Length}");
                 LegacyWriters.WriteCompressedA(conn.Stream, (int)GetClientId24(conn.ConnId), 0x01, 0x0F, inner, 1);
                 Debug.Log($"[Game] SendCharacterConnectedResponse: *** SUCCESS *** Sent character connected message");
             }
@@ -643,7 +646,6 @@ namespace Server.Game
                 Debug.LogError($"[Game] SendCharacterConnectedResponse: *** STACK TRACE *** {ex.StackTrace}");
             }
         }
-
 
         // === Go-accurate sendPlayer: Player WITH Avatar as child, then Avatar again, then cosmetic tail ===
         private void WriteGoSendPlayer(LEWriter body, Server.Game.GCObject character)
@@ -710,7 +712,6 @@ namespace Server.Game
             }
         }
 
-
         private async Task SendCharacterList(RRConnection conn)
         {
             Debug.Log($"[Game] SendCharacterList: *** ENTRY *** Matching Go server exactly");
@@ -772,15 +773,11 @@ namespace Server.Game
                 int head = Math.Min(16, inner.Length);
                 Debug.Log($"[Game] SendCharacterList: First {head} bytes: {BitConverter.ToString(inner, 0, head)}");
 
-                Debug.Log($"[SEND][A][prep] 4/0 using peer=0x{GetClientId24(conn.ConnId):X6} dest=0x01 sub=0x0F innerLen={inner.Length}");
                 Debug.Log($"[SEND][A][prep] 4/3 using peer=0x{GetClientId24(conn.ConnId):X6} dest=0x01 sub=0x0F innerLen={inner.Length}");
                 LegacyWriters.WriteCompressedA(conn.Stream, (int)GetClientId24(conn.ConnId), 0x01, 0x0F, inner, 1);
 
                 Debug.Log($"[Game] SendCharacterList: *** SUCCESS *** Sent Go format with {count} characters");
                 _charListSent[conn.ConnId] = true;
-
-
-
             }
             catch (Exception ex)
             {
@@ -933,6 +930,7 @@ namespace Server.Game
                     WriteGoSendPlayer(w, newCharacter);
                     var innerSingle = w.ToArray();
                     Debug.Log($"[SEND][inner] CH=4,TYPE=3 (updated single) : {BitConverter.ToString(innerSingle)} (len={innerSingle.Length})");
+                    Debug.Log($"[SEND][A][prep] 4/3(using SINGLE) peer=0x{GetClientId24(conn.ConnId):X6} dest=0x01 sub=0x0F innerLen={innerSingle.Length}");
                     LegacyWriters.WriteCompressedA(conn.Stream, (int)GetClientId24(conn.ConnId), 0x01, 0x0F, innerSingle, 1);
                     Debug.Log($"[Game] SendUpdatedCharacterList: Sent updated character list (SINGLE fallback) with new character (ID {charId})");
                     return;
