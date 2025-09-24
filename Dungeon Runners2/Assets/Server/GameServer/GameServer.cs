@@ -111,26 +111,35 @@ namespace Server.Game
                 byte[] buffer = new byte[10240];
                 while (rrConn.IsConnected)
                 {
-                    Debug.Log($"[Game] Client {connId} - Reading data...");
+                    Debug.Log($"[Game] Client {connId} - About to read data...");
                     int bytesRead = await s.ReadAsync(buffer, 0, buffer.Length);
+
                     if (bytesRead == 0)
                     {
-                        Debug.LogWarning($"[Game] Client {connId} closed connection.");
+                        Debug.Log($"[Game] Client {connId} - Clean disconnect (0 bytes read)");
                         break;
                     }
-                    Debug.Log($"[Game] Client {connId} - Read {bytesRead} bytes");
+
+                    Debug.Log($"[Game] Client {connId} - Successfully read {bytesRead} bytes");
                     Debug.Log($"[Game] Client {connId} - Data: {BitConverter.ToString(buffer, 0, bytesRead)}");
-                    int probe = Math.Min(8, bytesRead);
-                    if (probe > 0)
-                        Debug.Log($"[Game] Client {connId} - First {probe} bytes: {BitConverter.ToString(buffer, 0, probe)}");
+
+                    // Create a new array with just the received data
                     byte[] receivedData = new byte[bytesRead];
                     Buffer.BlockCopy(buffer, 0, receivedData, 0, bytesRead);
+
+                    Debug.Log($"[Game] Client {connId} - About to process data...");
+                    // Process all complete packets in this data
                     await ProcessReceivedData(rrConn, receivedData);
+                    Debug.Log($"[Game] Client {connId} - Data processing completed");
                 }
             }
             catch (Exception ex)
             {
-                Debug.LogError($"[Game] Exception from {ep} (ID={connId}): {ex.Message}");
+                Debug.LogError($"[Game] Client {connId} - Exception type: {ex.GetType().Name}");
+                Debug.LogError($"[Game] Client {connId} - Exception message: {ex.Message}");
+                Debug.LogError($"[Game] Client {connId} - Socket state: {c.Connected}");
+                Debug.LogError($"[Game] Client {connId} - Stream can read: {s.CanRead}");
+                Debug.LogError($"[Game] Client {connId} - Full exception: {ex}");
             }
             finally
             {
@@ -547,24 +556,34 @@ namespace Server.Game
         {
             Debug.Log($"[Game] HandleCharacterChannelMessages: Type 0x{messageType:X2} for client {conn.ConnId}");
 
+            int p = Math.Min(32, Math.Max(0, data.Length));
+            Debug.Log($"[Game] HandleCharacterChannelMessages: RAW ch4 bytes[0..{p - 1}]={BitConverter.ToString(data, 0, p)}");
+
             switch (messageType)
             {
+
                 case 0:
-                    Debug.Log($"[Game] HandleCharacterChannelMessages: Client confirmed character connection - waiting for list request");
-                    // Don't send anything - just wait for the client to request the list
+                    Debug.Log($"[Game] Client acknowledged character connected (4/0 ack). Waiting for 4/3 (GetList).");
                     break;
+
+
+
                 case 3:
-                    Debug.Log($"[Game] HandleCharacterChannelMessages: Get character list request");
+                    Debug.Log($"[Game] Get character list request (4/3) received");
                     await SendCharacterList(conn);
                     break;
+
+
                 case 5:
                     Debug.Log($"[Game] HandleCharacterChannelMessages: Character play");
                     await HandleCharacterPlay(conn, data);
                     break;
+
                 case 2:
                     Debug.Log($"[Game] HandleCharacterChannelMessages: Character create");
                     await HandleCharacterCreate(conn, data);
                     break;
+
                 default:
                     Debug.LogWarning($"[Game] HandleCharacterChannelMessages: Unhandled character msg 0x{messageType:X2}");
                     break;
@@ -573,6 +592,11 @@ namespace Server.Game
 
         private async Task SendCharacterConnectedResponse(RRConnection conn)
         {
+
+            Debug.Log($"[Game] SendCharacterConnectedResponse: pre-nudge A/0x02");
+            await SendCompressedAResponse(conn, 0x00, 0x02, Array.Empty<byte>());
+            await Task.Delay(75);
+
             Debug.Log($"[Game] SendCharacterConnectedResponse: *** ENTRY *** For client {conn.ConnId} - creating 2 characters like Go server");
 
             try
@@ -633,33 +657,28 @@ namespace Server.Game
 
             try
             {
-                // CRITICAL: Create avatar fresh for each character
-                Debug.Log($"[Game] WriteGoSendPlayer: *** STEP 1 *** Creating fresh avatar");
+                Debug.Log($"[Game] WriteGoSendPlayer: *** STEP 1 *** Calling Server.Game.Objects.LoadAvatar()");
                 var avatar = Server.Game.Objects.LoadAvatar();
-                Debug.Log($"[Game] WriteGoSendPlayer: *** STEP 1 SUCCESS *** Avatar created - ID: {avatar.ID}, Type: {avatar.GCType}");
+                Debug.Log($"[Game] WriteGoSendPlayer: *** STEP 1 SUCCESS *** Avatar created - ID: {avatar.ID}, Type: {avatar.GCType}, Children: {avatar.Children.Count}");
 
-                // CRITICAL: Clear any existing children on character first, then add avatar
-                Debug.Log($"[Game] WriteGoSendPlayer: *** STEP 2 *** Clearing character children and adding avatar");
-                character.Children.Clear();
                 character.AddChild(avatar);
-                Debug.Log($"[Game] WriteGoSendPlayer: *** STEP 2 SUCCESS *** Character now has {character.Children.Count} children");
 
-                // STEP 3: Write character WITH avatar as child
-                Debug.Log($"[Game] WriteGoSendPlayer: *** STEP 3 *** Writing character with avatar as child");
+                Debug.Log($"[Game] WriteGoSendPlayer: *** STEP 2 *** Writing main character object (WITH avatar as child)");
                 var beforeCharacter = body.ToArray().Length;
                 character.WriteFullGCObject(body);
                 var afterCharacter = body.ToArray().Length;
-                Debug.Log($"[Game] WriteGoSendPlayer: *** STEP 3 SUCCESS *** Wrote character, bytes added: {afterCharacter - beforeCharacter}");
+                int playerBytes = afterCharacter - beforeCharacter;
+                Debug.Log($"[Game] WriteGoSendPlayer: *** STEP 2 SUCCESS *** Wrote character, bytes added: {playerBytes}");
 
-                // STEP 4: Write avatar separately (as Go server does)
-                Debug.Log($"[Game] WriteGoSendPlayer: *** STEP 4 *** Writing avatar separately");
+                Debug.Log($"[Game] WriteGoSendPlayer: *** STEP 3 *** Writing avatar separately like Go server does");
                 var beforeAvatar = body.ToArray().Length;
                 avatar.WriteFullGCObject(body);
                 var afterAvatar = body.ToArray().Length;
-                Debug.Log($"[Game] WriteGoSendPlayer: *** STEP 4 SUCCESS *** Wrote avatar separately, bytes added: {afterAvatar - beforeAvatar}");
+                int avatarBytes = afterAvatar - beforeAvatar;
+                Debug.Log($"[Game] WriteGoSendPlayer: *** STEP 3 SUCCESS *** Wrote avatar, bytes added: {avatarBytes}");
 
-                // STEP 5: Write cosmetic tail exactly like Go server
-                Debug.Log($"[Game] WriteGoSendPlayer: *** STEP 5 *** Writing cosmetic tail");
+                Debug.Log($"[Game] WriteGoSendPlayer: *** STEP 4 *** Writing additional data that Go server adds (cosmetic tail)");
+                var beforeTail = body.ToArray().Length;
                 body.WriteByte(0x01);
                 body.WriteByte(0x01);
                 var normalBytes = Encoding.UTF8.GetBytes("Normal");
@@ -668,10 +687,22 @@ namespace Server.Game
                 body.WriteByte(0x01);
                 body.WriteByte(0x01);
                 body.WriteUInt32(0x01);
+                var afterTail = body.ToArray().Length;
+                int tailBytes = afterTail - beforeTail;
 
                 var finalSize = body.ToArray().Length;
-                Debug.Log($"[Game] WriteGoSendPlayer: *** SUCCESS *** Total size: {finalSize} bytes");
+                Debug.Log($"[Game] WriteGoSendPlayer: *** SUCCESS *** Completed Go format, totals: player={playerBytes} avatar={avatarBytes} tail={tailBytes} total={finalSize}");
+                Debug.Log($"[Game] WriteGoSendPlayer: *** SUCCESS *** Character children: {character.Children.Count}, Avatar children: {avatar.Children.Count}");
 
+                try
+                {
+                    bool removed = character.Children != null && character.Children.Remove(avatar);
+                    Debug.Log($"[Game] WriteGoSendPlayer: *** CLEANUP *** Removed temporary avatar child: {removed}");
+                }
+                catch (Exception cleanupEx)
+                {
+                    Debug.LogWarning($"[Game] WriteGoSendPlayer: Cleanup warning (non-fatal): {cleanupEx.Message}");
+                }
             }
             catch (Exception ex)
             {
