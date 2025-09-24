@@ -1,0 +1,289 @@
+No.     Time           Source                Destination           Protocol Length Info
+   2789 26.402627      127.0.0.1             127.0.0.1             TCP      56     56528 → 2603 [SYN] Seq=0 Win=32768 Len=0 MSS=65495 WS=1 SACK_PERM
+
+Frame 2789: 56 bytes on wire (448 bits), 56 bytes captured (448 bits) on interface \Device\NPF_Loopback, id 0
+Null/Loopback
+Internet Protocol Version 4, Src: 127.0.0.1, Dst: 127.0.0.1
+Transmission Control Protocol, Src Port: 56528, Dst Port: 2603, Seq: 0, Len: 0
+
+No.     Time           Source                Destination           Protocol Length Info
+   2790 26.402656      127.0.0.1             127.0.0.1             TCP      56     2603 → 56528 [SYN, ACK] Seq=0 Ack=1 Win=65535 Len=0 MSS=65495 WS=256 SACK_PERM
+
+Frame 2790: 56 bytes on wire (448 bits), 56 bytes captured (448 bits) on interface \Device\NPF_Loopback, id 0
+Null/Loopback
+Internet Protocol Version 4, Src: 127.0.0.1, Dst: 127.0.0.1
+Transmission Control Protocol, Src Port: 2603, Dst Port: 56528, Seq: 0, Ack: 1, Len: 0
+
+No.     Time           Source                Destination           Protocol Length Info
+   2791 26.402678      127.0.0.1             127.0.0.1             TCP      44     56528 → 2603 [ACK] Seq=1 Ack=1 Win=32768 Len=0
+
+Frame 2791: 44 bytes on wire (352 bits), 44 bytes captured (352 bits) on interface \Device\NPF_Loopback, id 0
+Null/Loopback
+Internet Protocol Version 4, Src: 127.0.0.1, Dst: 127.0.0.1
+Transmission Control Protocol, Src Port: 56528, Dst Port: 2603, Seq: 1, Ack: 1, Len: 0
+
+No.     Time           Source                Destination           Protocol Length Info
+   2794 26.402895      127.0.0.1             127.0.0.1             TCP      73     56528 → 2603 [PSH, ACK] Seq=1 Ack=1 Win=32768 Len=29
+
+Frame 2794: 73 bytes on wire (584 bits), 73 bytes captured (584 bits) on interface \Device\NPF_Loopback, id 0
+Null/Loopback
+Internet Protocol Version 4, Src: 127.0.0.1, Dst: 127.0.0.1
+Transmission Control Protocol, Src Port: 56528, Dst Port: 2603, Seq: 1, Ack: 1, Len: 29
+Data (29 bytes)
+
+0000  0a dd 7b 00 15 00 00 00 00 00 00 06 00 00 00 78   ..{............x
+0010  9c 63 b4 55 da 1b c3 00 00 04 b4 01 7a            .c.U........z
+
+No.     Time           Source                Destination           Protocol Length Info
+   2795 26.402901      127.0.0.1             127.0.0.1             TCP      44     2603 → 56528 [ACK] Seq=1 Ack=30 Win=65280 Len=0
+
+Frame 2795: 44 bytes on wire (352 bits), 44 bytes captured (352 bits) on interface \Device\NPF_Loopback, id 0
+Null/Loopback
+Internet Protocol Version 4, Src: 127.0.0.1, Dst: 127.0.0.1
+Transmission Control Protocol, Src Port: 2603, Dst Port: 56528, Seq: 1, Ack: 30, Len: 0
+
+No.     Time           Source                Destination           Protocol Length Info
+   2806 26.496624      127.0.0.1             127.0.0.1             TCP      53     2603 → 56528 [PSH, ACK] Seq=1 Ack=30 Win=65280 Len=9
+
+Frame 2806: 53 bytes on wire (424 bits), 53 bytes captured (424 bits) on interface \Device\NPF_Loopback, id 0
+Null/Loopback
+Internet Protocol Version 4, Src: 127.0.0.1, Dst: 127.0.0.1
+Transmission Control Protocol, Src Port: 2603, Dst Port: 56528, Seq: 1, Ack: 30, Len: 9
+Data (9 bytes)
+
+0000  10 dd 7b 00 01 00 00 0a 03                        ..{......
+
+No.     Time           Source                Destination           Protocol Length Info
+   2807 26.496635      127.0.0.1             127.0.0.1             TCP      44     56528 → 2603 [ACK] Seq=30 Ack=10 Win=32759 Len=0
+
+Frame 2807: 44 bytes on wire (352 bits), 44 bytes captured (352 bits) on interface \Device\NPF_Loopback, id 0
+Null/Loopback
+Internet Protocol Version 4, Src: 127.0.0.1, Dst: 127.0.0.1
+Transmission Control Protocol, Src Port: 56528, Dst Port: 2603, Seq: 30, Ack: 10, Len: 0
+
+No.     Time           Source                Destination           Protocol Length Info
+   2810 26.523387      127.0.0.1             127.0.0.1             TCP      71     2603 → 56528 [PSH, ACK] Seq=10 Ack=30 Win=65280 Len=27
+
+Frame 2810: 71 bytes on wire (568 bits), 71 bytes captured (568 bits) on interface \Device\NPF_Loopback, id 0
+Null/Loopback
+Internet Protocol Version 4, Src: 127.0.0.1, Dst: 127.0.0.1
+Transmission Control Protocol, Src Port: 2603, Dst Port: 56528, Seq: 10, Ack: 30, Len: 27
+Data (27 bytes)
+
+0000  0a dd 7b 00 13 00 00 00 00 03 00 04 00 00 00 78   ..{............x
+0010  9c db b2 79 13 03 00 06 51 02 1a                  ...y....Q..
+
+No.     Time           Source                Destination           Protocol Length Info
+   2811 26.523408      127.0.0.1             127.0.0.1             TCP      44     56528 → 2603 [ACK] Seq=30 Ack=37 Win=32732 Len=0
+
+Frame 2811: 44 bytes on wire (352 bits), 44 bytes captured (352 bits) on interface \Device\NPF_Loopback, id 0
+Null/Loopback
+Internet Protocol Version 4, Src: 127.0.0.1, Dst: 127.0.0.1
+Transmission Control Protocol, Src Port: 56528, Dst Port: 2603, Seq: 30, Ack: 37, Len: 0
+
+No.     Time           Source                Destination           Protocol Length Info
+   2812 26.544622      127.0.0.1             127.0.0.1             TCP      74     56528 → 2603 [PSH, ACK] Seq=30 Ack=37 Win=32732 Len=30
+
+Frame 2812: 74 bytes on wire (592 bits), 74 bytes captured (592 bits) on interface \Device\NPF_Loopback, id 0
+Null/Loopback
+Internet Protocol Version 4, Src: 127.0.0.1, Dst: 127.0.0.1
+Transmission Control Protocol, Src Port: 56528, Dst Port: 2603, Seq: 30, Ack: 37, Len: 30
+Data (30 bytes)
+
+0000  0e dd 7b 00 16 00 00 00 b4 b3 b2 01 00 01 00 00   ..{.............
+0010  02 00 00 00 78 9c 63 66 00 00 00 08 00 04         ....x.cf......
+
+No.     Time           Source                Destination           Protocol Length Info
+   2813 26.544637      127.0.0.1             127.0.0.1             TCP      44     2603 → 56528 [ACK] Seq=37 Ack=60 Win=65280 Len=0
+
+Frame 2813: 44 bytes on wire (352 bits), 44 bytes captured (352 bits) on interface \Device\NPF_Loopback, id 0
+Null/Loopback
+Internet Protocol Version 4, Src: 127.0.0.1, Dst: 127.0.0.1
+Transmission Control Protocol, Src Port: 2603, Dst Port: 56528, Seq: 37, Ack: 60, Len: 0
+
+No.     Time           Source                Destination           Protocol Length Info
+   2816 26.564727      127.0.0.1             127.0.0.1             TCP      59     2603 → 56528 [PSH, ACK] Seq=37 Ack=60 Win=65280 Len=15
+
+Frame 2816: 59 bytes on wire (472 bits), 59 bytes captured (472 bits) on interface \Device\NPF_Loopback, id 0
+Null/Loopback
+Internet Protocol Version 4, Src: 127.0.0.1, Dst: 127.0.0.1
+Transmission Control Protocol, Src Port: 2603, Dst Port: 56528, Seq: 37, Ack: 60, Len: 15
+Data (15 bytes)
+
+0000  0a dd 7b 00 07 00 00 00 00 02 00 00 00 00 00      ..{............
+
+No.     Time           Source                Destination           Protocol Length Info
+   2817 26.564738      127.0.0.1             127.0.0.1             TCP      44     56528 → 2603 [ACK] Seq=60 Ack=52 Win=32717 Len=0
+
+Frame 2817: 44 bytes on wire (352 bits), 44 bytes captured (352 bits) on interface \Device\NPF_Loopback, id 0
+Null/Loopback
+Internet Protocol Version 4, Src: 127.0.0.1, Dst: 127.0.0.1
+Transmission Control Protocol, Src Port: 56528, Dst Port: 2603, Seq: 60, Ack: 52, Len: 0
+
+No.     Time           Source                Destination           Protocol Length Info
+   2818 26.586012      127.0.0.1             127.0.0.1             TCP      74     56528 → 2603 [PSH, ACK] Seq=60 Ack=52 Win=32717 Len=30
+
+Frame 2818: 74 bytes on wire (592 bits), 74 bytes captured (592 bits) on interface \Device\NPF_Loopback, id 0
+Null/Loopback
+Internet Protocol Version 4, Src: 127.0.0.1, Dst: 127.0.0.1
+Transmission Control Protocol, Src Port: 56528, Dst Port: 2603, Seq: 60, Ack: 52, Len: 30
+Data (30 bytes)
+
+0000  0e dd 7b 00 16 00 00 00 b4 b3 b2 01 00 b4 00 00   ..{.............
+0010  02 00 00 00 78 9c 63 61 00 00 00 0a 00 05         ....x.ca......
+
+No.     Time           Source                Destination           Protocol Length Info
+   2819 26.586023      127.0.0.1             127.0.0.1             TCP      44     2603 → 56528 [ACK] Seq=52 Ack=90 Win=65280 Len=0
+
+Frame 2819: 44 bytes on wire (352 bits), 44 bytes captured (352 bits) on interface \Device\NPF_Loopback, id 0
+Null/Loopback
+Internet Protocol Version 4, Src: 127.0.0.1, Dst: 127.0.0.1
+Transmission Control Protocol, Src Port: 2603, Dst Port: 56528, Seq: 52, Ack: 90, Len: 0
+
+No.     Time           Source                Destination           Protocol Length Info
+   2828 26.721648      127.0.0.1             127.0.0.1             TCP      59     2603 → 56528 [PSH, ACK] Seq=52 Ack=90 Win=65280 Len=15
+
+Frame 2828: 59 bytes on wire (472 bits), 59 bytes captured (472 bits) on interface \Device\NPF_Loopback, id 0
+Null/Loopback
+Internet Protocol Version 4, Src: 127.0.0.1, Dst: 127.0.0.1
+Transmission Control Protocol, Src Port: 2603, Dst Port: 56528, Seq: 52, Ack: 90, Len: 15
+Data (15 bytes)
+
+0000  0a dd 7b 00 07 00 00 00 00 02 00 00 00 00 00      ..{............
+
+No.     Time           Source                Destination           Protocol Length Info
+   2829 26.721654      127.0.0.1             127.0.0.1             TCP      44     56528 → 2603 [ACK] Seq=90 Ack=67 Win=32702 Len=0
+
+Frame 2829: 44 bytes on wire (352 bits), 44 bytes captured (352 bits) on interface \Device\NPF_Loopback, id 0
+Null/Loopback
+Internet Protocol Version 4, Src: 127.0.0.1, Dst: 127.0.0.1
+Transmission Control Protocol, Src Port: 56528, Dst Port: 2603, Seq: 90, Ack: 67, Len: 0
+
+No.     Time           Source                Destination           Protocol Length Info
+   2830 26.831815      127.0.0.1             127.0.0.1             TCP      70     2603 → 56528 [PSH, ACK] Seq=67 Ack=90 Win=65280 Len=26
+
+Frame 2830: 70 bytes on wire (560 bits), 70 bytes captured (560 bits) on interface \Device\NPF_Loopback, id 0
+Null/Loopback
+Internet Protocol Version 4, Src: 127.0.0.1, Dst: 127.0.0.1
+Transmission Control Protocol, Src Port: 2603, Dst Port: 56528, Seq: 67, Ack: 90, Len: 26
+Data (26 bytes)
+
+0000  10 17 00 01 00 0a 0a dd 7b 00 01 0f 02 00 00 00   ........{.......
+0010  78 9c 63 61 00 00 00 0a 00 05                     x.ca......
+
+No.     Time           Source                Destination           Protocol Length Info
+   2831 26.831830      127.0.0.1             127.0.0.1             TCP      44     56528 → 2603 [ACK] Seq=90 Ack=93 Win=32676 Len=0
+
+Frame 2831: 44 bytes on wire (352 bits), 44 bytes captured (352 bits) on interface \Device\NPF_Loopback, id 0
+Null/Loopback
+Internet Protocol Version 4, Src: 127.0.0.1, Dst: 127.0.0.1
+Transmission Control Protocol, Src Port: 56528, Dst Port: 2603, Seq: 90, Ack: 93, Len: 0
+
+No.     Time           Source                Destination           Protocol Length Info
+   2846 27.106820      127.0.0.1             127.0.0.1             TCP      59     2603 → 56528 [PSH, ACK] Seq=93 Ack=90 Win=65280 Len=15
+
+Frame 2846: 59 bytes on wire (472 bits), 59 bytes captured (472 bits) on interface \Device\NPF_Loopback, id 0
+Null/Loopback
+Internet Protocol Version 4, Src: 127.0.0.1, Dst: 127.0.0.1
+Transmission Control Protocol, Src Port: 2603, Dst Port: 56528, Seq: 93, Ack: 90, Len: 15
+Data (15 bytes)
+
+0000  0a dd 7b 00 07 00 00 00 00 02 00 00 00 00 00      ..{............
+
+No.     Time           Source                Destination           Protocol Length Info
+   2847 27.106826      127.0.0.1             127.0.0.1             TCP      44     56528 → 2603 [ACK] Seq=90 Ack=108 Win=32661 Len=0
+
+Frame 2847: 44 bytes on wire (352 bits), 44 bytes captured (352 bits) on interface \Device\NPF_Loopback, id 0
+Null/Loopback
+Internet Protocol Version 4, Src: 127.0.0.1, Dst: 127.0.0.1
+Transmission Control Protocol, Src Port: 56528, Dst Port: 2603, Seq: 90, Ack: 108, Len: 0
+
+No.     Time           Source                Destination           Protocol Length Info
+   2851 27.198892      127.0.0.1             127.0.0.1             TCP      70     2603 → 56528 [PSH, ACK] Seq=108 Ack=90 Win=65280 Len=26
+
+Frame 2851: 70 bytes on wire (560 bits), 70 bytes captured (560 bits) on interface \Device\NPF_Loopback, id 0
+Null/Loopback
+Internet Protocol Version 4, Src: 127.0.0.1, Dst: 127.0.0.1
+Transmission Control Protocol, Src Port: 2603, Dst Port: 56528, Seq: 108, Ack: 90, Len: 26
+Data (26 bytes)
+
+0000  10 17 00 01 00 0a 0a dd 7b 00 01 0f 02 00 00 00   ........{.......
+0010  78 9c 63 61 00 00 00 0a 00 05                     x.ca......
+
+No.     Time           Source                Destination           Protocol Length Info
+   2852 27.198904      127.0.0.1             127.0.0.1             TCP      44     56528 → 2603 [ACK] Seq=90 Ack=134 Win=32635 Len=0
+
+Frame 2852: 44 bytes on wire (352 bits), 44 bytes captured (352 bits) on interface \Device\NPF_Loopback, id 0
+Null/Loopback
+Internet Protocol Version 4, Src: 127.0.0.1, Dst: 127.0.0.1
+Transmission Control Protocol, Src Port: 56528, Dst Port: 2603, Seq: 90, Ack: 134, Len: 0
+
+No.     Time           Source                Destination           Protocol Length Info
+   2858 27.353184      127.0.0.1             127.0.0.1             TCP      59     2603 → 56528 [PSH, ACK] Seq=134 Ack=90 Win=65280 Len=15
+
+Frame 2858: 59 bytes on wire (472 bits), 59 bytes captured (472 bits) on interface \Device\NPF_Loopback, id 0
+Null/Loopback
+Internet Protocol Version 4, Src: 127.0.0.1, Dst: 127.0.0.1
+Transmission Control Protocol, Src Port: 2603, Dst Port: 56528, Seq: 134, Ack: 90, Len: 15
+Data (15 bytes)
+
+0000  0a dd 7b 00 07 00 00 00 00 02 00 00 00 00 00      ..{............
+
+No.     Time           Source                Destination           Protocol Length Info
+   2859 27.353190      127.0.0.1             127.0.0.1             TCP      44     56528 → 2603 [ACK] Seq=90 Ack=149 Win=32620 Len=0
+
+Frame 2859: 44 bytes on wire (352 bits), 44 bytes captured (352 bits) on interface \Device\NPF_Loopback, id 0
+Null/Loopback
+Internet Protocol Version 4, Src: 127.0.0.1, Dst: 127.0.0.1
+Transmission Control Protocol, Src Port: 56528, Dst Port: 2603, Seq: 90, Ack: 149, Len: 0
+
+No.     Time           Source                Destination           Protocol Length Info
+   2952 27.872523      127.0.0.1             127.0.0.1             TCP      59     2603 → 56528 [PSH, ACK] Seq=149 Ack=90 Win=65280 Len=15
+
+Frame 2952: 59 bytes on wire (472 bits), 59 bytes captured (472 bits) on interface \Device\NPF_Loopback, id 0
+Null/Loopback
+Internet Protocol Version 4, Src: 127.0.0.1, Dst: 127.0.0.1
+Transmission Control Protocol, Src Port: 2603, Dst Port: 56528, Seq: 149, Ack: 90, Len: 15
+Data (15 bytes)
+
+0000  0a dd 7b 00 07 00 00 00 00 02 00 00 00 00 00      ..{............
+
+No.     Time           Source                Destination           Protocol Length Info
+   2953 27.872533      127.0.0.1             127.0.0.1             TCP      44     56528 → 2603 [ACK] Seq=90 Ack=164 Win=32605 Len=0
+
+Frame 2953: 44 bytes on wire (352 bits), 44 bytes captured (352 bits) on interface \Device\NPF_Loopback, id 0
+Null/Loopback
+Internet Protocol Version 4, Src: 127.0.0.1, Dst: 127.0.0.1
+Transmission Control Protocol, Src Port: 56528, Dst Port: 2603, Seq: 90, Ack: 164, Len: 0
+
+No.     Time           Source                Destination           Protocol Length Info
+   3056 29.054818      127.0.0.1             127.0.0.1             TCP      44     56528 → 2603 [FIN, ACK] Seq=90 Ack=164 Win=32605 Len=0
+
+Frame 3056: 44 bytes on wire (352 bits), 44 bytes captured (352 bits) on interface \Device\NPF_Loopback, id 0
+Null/Loopback
+Internet Protocol Version 4, Src: 127.0.0.1, Dst: 127.0.0.1
+Transmission Control Protocol, Src Port: 56528, Dst Port: 2603, Seq: 90, Ack: 164, Len: 0
+
+No.     Time           Source                Destination           Protocol Length Info
+   3057 29.054841      127.0.0.1             127.0.0.1             TCP      44     2603 → 56528 [ACK] Seq=164 Ack=91 Win=65280 Len=0
+
+Frame 3057: 44 bytes on wire (352 bits), 44 bytes captured (352 bits) on interface \Device\NPF_Loopback, id 0
+Null/Loopback
+Internet Protocol Version 4, Src: 127.0.0.1, Dst: 127.0.0.1
+Transmission Control Protocol, Src Port: 2603, Dst Port: 56528, Seq: 164, Ack: 91, Len: 0
+
+No.     Time           Source                Destination           Protocol Length Info
+   3058 29.064261      127.0.0.1             127.0.0.1             TCP      44     2603 → 56528 [FIN, ACK] Seq=164 Ack=91 Win=65280 Len=0
+
+Frame 3058: 44 bytes on wire (352 bits), 44 bytes captured (352 bits) on interface \Device\NPF_Loopback, id 0
+Null/Loopback
+Internet Protocol Version 4, Src: 127.0.0.1, Dst: 127.0.0.1
+Transmission Control Protocol, Src Port: 2603, Dst Port: 56528, Seq: 164, Ack: 91, Len: 0
+
+No.     Time           Source                Destination           Protocol Length Info
+   3059 29.064289      127.0.0.1             127.0.0.1             TCP      44     56528 → 2603 [ACK] Seq=91 Ack=165 Win=32605 Len=0
+
+Frame 3059: 44 bytes on wire (352 bits), 44 bytes captured (352 bits) on interface \Device\NPF_Loopback, id 0
+Null/Loopback
+Internet Protocol Version 4, Src: 127.0.0.1, Dst: 127.0.0.1
+Transmission Control Protocol, Src Port: 56528, Dst Port: 2603, Seq: 91, Ack: 165, Len: 0
