@@ -109,19 +109,21 @@ namespace Server.Game
                 Name = name,
                 GCLabel = name,
                 Properties = new List<GCObjectProperty>
-                {
-                    new StringProperty { Name = "Name", Value = name },
-                    new UInt32Property { Name = "Level", Value = 1 },
-                    new UInt32Property { Name = "Experience", Value = 0 },
-                    new UInt32Property { Name = "Health", Value = 100 },
-                    new UInt32Property { Name = "MaxHealth", Value = 100 },
-                    new UInt32Property { Name = "Mana", Value = 50 },
-                    new UInt32Property { Name = "MaxMana", Value = 50 },
-                }
+        {
+            new StringProperty { Name = "Name", Value = name },
+            new UInt32Property { Name = "Level", Value = 1 },
+            new UInt32Property { Name = "Experience", Value = 0 },
+            new UInt32Property { Name = "Health", Value = 100 },
+            new UInt32Property { Name = "MaxHealth", Value = 100 },
+            new UInt32Property { Name = "Mana", Value = 50 },
+            new UInt32Property { Name = "MaxMana", Value = 50 },
+        }
             };
 
-            var avatar = LoadAvatar();
-            player.AddChild(avatar);
+            // DON'T add avatar here - let WriteGoSendPlayer add it
+            // var avatar = LoadAvatar();
+            // player.AddChild(avatar);
+
             return player;
         }
 
