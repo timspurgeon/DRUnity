@@ -13,6 +13,7 @@ using Server.Net;
 using Org.BouncyCastle.Utilities;
 using System.Reflection;
 using Unity.VisualScripting.Antlr3.Runtime.Tree;
+using System.IO; // for dump helper
 
 namespace Server.Game
 {
@@ -38,6 +39,66 @@ namespace Server.Game
 
         private bool _gameLoopRunning = false;
         private readonly object _gameLoopLock = new object();
+
+        // ==== Tunables / toggles (kept at top for quick A/B) ====
+        // Some DR builds expect the Avatar to be included only as a CHILD of Player (single write).
+        // If you need to test the "duplicate avatar record" (child + standalone) like some Go payloads,
+        // flip this to true and re-run. All proof logs remain.
+        // Duplicate standalone Avatar record after Player (some Go builds do this).
+        // We'll keep it ON for now while we stabilize; if size mismatches appear we can toggle off.
+        private const bool DUPLICATE_AVATAR_RECORD = true;
+
+        // ===== Dump helper (writes uncompressed/compressed + CRC to <Base>\dump) =====
+        static class DumpUtil
+        {
+            static readonly uint[] _crcTable = InitCrc();
+            static uint[] InitCrc()
+            {
+                const uint poly = 0xEDB88320u;
+                var t = new uint[256];
+                for (uint i = 0; i < 256; i++)
+                {
+                    uint c = i;
+                    for (int k = 0; k < 8; k++) c = ((c & 1) != 0) ? (poly ^ (c >> 1)) : (c >> 1);
+                    t[i] = c;
+                }
+                return t;
+            }
+            public static uint Crc32(ReadOnlySpan<byte> data)
+            {
+                uint crc = 0xFFFFFFFFu;
+                foreach (var b in data) crc = _crcTable[(crc ^ b) & 0xFF] ^ (crc >> 8);
+                return ~crc;
+            }
+            public static string DumpDir
+            {
+                get
+                {
+                    var d = Path.Combine(AppContext.BaseDirectory, "dump");
+                    Directory.CreateDirectory(d);
+                    return d;
+                }
+            }
+
+            public static void WriteBytes(string path, byte[] bytes) => File.WriteAllBytes(path, bytes);
+            public static void WriteText(string path, string text) => File.WriteAllText(path, text, new UTF8Encoding(false));
+            public static void DumpBlob(string tag, string suffix, byte[] bytes)
+            {
+                string baseName = $"{DateTime.UtcNow:yyyyMMdd_HHmmssfff}_{tag}.{suffix}";
+                string full = Path.Combine(DumpDir, baseName);
+                WriteBytes(full, bytes);
+                Debug.Log($"[DUMP] Wrote {suffix} -> {full} ({bytes.Length} bytes)");
+            }
+            public static void DumpCrc(string tag, string label, byte[] bytes)
+            {
+                uint crc = Crc32(bytes);
+                string name = $"{DateTime.UtcNow:yyyyMMdd_HHmmssfff}_{tag}.{label}.crc32.txt";
+                string path = Path.Combine(DumpDir, name);
+                WriteText(path, $"0x{crc:X8}\nlen={bytes.Length}\n");
+                Debug.Log($"[DUMP] CRC {label} 0x{crc:X8} (len={bytes.Length}) -> {path}");
+            }
+        }
+        // ============================================================================
 
         public GameServer(string ip, int port)
         {
@@ -462,9 +523,35 @@ namespace Server.Game
             switch (channel)
             {
                 case 4:
-                    Debug.Log($"[Game] HandleChannelMessage: Routing to character handler");
-                    await HandleCharacterChannelMessages(conn, messageType, data);
+                    Debug.Log($"[Game] HandleCharacterChannelMessages: Type 0x{messageType:X2} for client {conn.ConnId}");
+                    switch (messageType)
+                    {
+                        case 0:
+                            Debug.Log($"[Game] HandleCharacterChannelMessages: Character connected");
+                            await SendCharacterConnectedResponse(conn);
+                            break;
+
+                        case 3:
+                            Debug.Log($"[Game] HandleCharacterChannelMessages: Get character list (ENTER)");
+                            await SendCharacterList(conn);
+                            break;
+
+                        case 5:
+                            Debug.Log($"[Game] HandleCharacterChannelMessages: Character play");
+                            await HandleCharacterPlay(conn, data);
+                            break;
+
+                        case 2:
+                            Debug.Log($"[Game] HandleCharacterChannelMessages: Character create");
+                            await HandleCharacterCreate(conn, data);
+                            break;
+
+                        default:
+                            Debug.LogWarning($"[Game] HandleCharacterChannelMessages: Unhandled character msg 0x{messageType:X2}");
+                            break;
+                    }
                     break;
+
                 case 9:
                     Debug.Log($"[Game] HandleChannelMessage: Routing to group handler");
                     await HandleGroupChannelMessages(conn, messageType);
@@ -543,46 +630,33 @@ namespace Server.Game
                     }
                 });
 
+                // === Watchdog: proactively send 4/3 if client never asks ===
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await Task.Delay(300);
+                        if (!_charListSent.TryGetValue(conn.ConnId, out var sent3) || !sent3)
+                        {
+                            Debug.Log("[Game] Character list watchdog: client did not request 4/3; proactively sending list now");
+                            await SendCharacterList(conn);
+                        }
+                        else
+                        {
+                            Debug.Log("[Game] Character list watchdog: list already sent; skipping proactive send");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.LogWarning($"[Game] Character list watchdog: non-fatal error: {ex.Message}");
+                    }
+                });
+
             }
             catch (Exception ex)
             {
                 Debug.LogError($"[Game] StartCharacterFlow: *** CRITICAL EXCEPTION *** {ex.Message}");
                 Debug.LogError($"[Game] StartCharacterFlow: *** STACK TRACE *** {ex.StackTrace}");
-            }
-        }
-
-        private async Task HandleCharacterChannelMessages(RRConnection conn, byte messageType, byte[] data)
-        {
-            Debug.Log($"[Game] HandleCharacterChannelMessages: Type 0x{messageType:X2} for client {conn.ConnId}");
-
-            int p = Math.Min(32, Math.Max(0, data.Length));
-            Debug.Log($"[Game] HandleCharacterChannelMessages: RAW ch4 bytes[0..{p - 1}]={BitConverter.ToString(data, 0, p)}");
-
-            switch (messageType)
-            {
-                case 0:
-                    Debug.Log($"[Game] HandleCharacterChannelMessages: Character connected");
-                    await SendCharacterConnectedResponse(conn);
-                    break;
-
-                case 3:
-                    Debug.Log($"[Game] HandleCharacterChannelMessages: Get character list (ENTER)");
-                    await SendCharacterList(conn);
-                    break;
-
-                case 5:
-                    Debug.Log($"[Game] HandleCharacterChannelMessages: Character play");
-                    await HandleCharacterPlay(conn, data);
-                    break;
-
-                case 2:
-                    Debug.Log($"[Game] HandleCharacterChannelMessages: Character create");
-                    await HandleCharacterCreate(conn, data);
-                    break;
-
-                default:
-                    Debug.LogWarning($"[Game] HandleCharacterChannelMessages: Unhandled character msg 0x{messageType:X2}");
-                    break;
             }
         }
 
@@ -637,7 +711,7 @@ namespace Server.Game
                     Debug.LogWarning($"[Game] SendCharacterConnectedResponse: Unexpected 4/0 header: {BitConverter.ToString(inner.Take(2).ToArray())}");
 
                 Debug.Log($"[SEND][A][prep] 4/0 using peer=0x{GetClientId24(conn.ConnId):X6} dest=0x01 sub=0x0F innerLen={inner.Length}");
-                LegacyWriters.WriteCompressedA(conn.Stream, (int)GetClientId24(conn.ConnId), 0x01, 0x0F, inner, 1);
+                await SendCompressedAResponseWithDump(conn, 0x01, 0x0F, inner, "char_connected");
                 Debug.Log($"[Game] SendCharacterConnectedResponse: *** SUCCESS *** Sent character connected message");
             }
             catch (Exception ex)
@@ -647,30 +721,93 @@ namespace Server.Game
             }
         }
 
-        // === Go-accurate sendPlayer: Player WITH Avatar as child, then Avatar again, then cosmetic tail ===
+        // === Helper: ensure exactly one Avatar child during serialization and remove it afterwards ===
+        private static bool EnsureSingleAvatarChild(Server.Game.GCObject player, out Server.Game.GCObject? addedAvatar)
+        {
+            addedAvatar = null;
+            try
+            {
+                if (player.Children != null && player.Children.Count > 0)
+                {
+                    // Assume first child is Avatar; do not add a second one.
+                    return false;
+                }
+
+                var avatar = Server.Game.Objects.LoadAvatar();
+                player.AddChild(avatar);
+                addedAvatar = avatar;
+                Debug.Log("[Game] EnsureSingleAvatarChild: Temp Avatar added for serialization.");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[Game] EnsureSingleAvatarChild: failed: {ex.Message}");
+                return false;
+            }
+        }
+
+        // === Player serializer (uses EnsureSingleAvatarChild; removes temp avatar after write) ===
         private void WriteGoSendPlayer(LEWriter body, Server.Game.GCObject character)
         {
-            // Don't clear children/properties - keep what NewPlayer() created
-            var avatar = Server.Game.Objects.LoadAvatar();
-            character.AddChild(avatar);  // Add avatar to existing children
+            Server.Game.GCObject? avatarAdded = null;
+            bool added = false;
 
-            character.WriteFullGCObject(body);
-            avatar.WriteFullGCObject(body);
+            try
+            {
+                added = EnsureSingleAvatarChild(character, out avatarAdded);
 
-            // Cosmetic tail exactly like Go
-            body.WriteByte(0x01);
-            body.WriteByte(0x01);
-            var normalBytes = Encoding.UTF8.GetBytes("Normal");
-            body.WriteBytes(normalBytes);
-            body.WriteByte(0x00);
-            body.WriteByte(0x01);
-            body.WriteByte(0x01);
-            body.WriteUInt32(0x01);
+                long start = body.ToArray().Length;
+                character.WriteFullGCObject(body);
+                long end = body.ToArray().Length;
+                Debug.Log($"[Game] WriteGoSendPlayer: Player full write bytes={end - start}");
+
+                if (DUPLICATE_AVATAR_RECORD)
+                {
+                    Debug.Log("[Game] WriteGoSendPlayer: DUPLICATE_AVATAR_RECORD=TRUE -> writing avatar twice (child + standalone) to mirror some Go payloads");
+
+                    var avatarToWrite =
+                        avatarAdded
+                        ?? (character.Children != null && character.Children.Count > 0 ? character.Children[0] : null)
+                        ?? Server.Game.Objects.LoadAvatar();
+
+                    long a0 = body.ToArray().Length;
+                    avatarToWrite.WriteFullGCObject(body);
+                    long a1 = body.ToArray().Length;
+                    Debug.Log($"[Game] WriteGoSendPlayer: Standalone Avatar write bytes={a1 - a0}");
+
+                    // Cosmetic tail exactly like Go
+                    body.WriteByte(0x01);
+                    body.WriteByte(0x01);
+                    var normalBytes = Encoding.UTF8.GetBytes("Normal");
+                    body.WriteBytes(normalBytes);
+                    body.WriteByte(0x00);
+                    body.WriteByte(0x01);
+                    body.WriteByte(0x01);
+                    body.WriteUInt32(0x01);
+                }
+                else
+                {
+                    Debug.Log("[Game] WriteGoSendPlayer: DUPLICATE_AVATAR_RECORD=FALSE -> sending only Player (with Avatar child)");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[Game] WriteGoSendPlayer: EXCEPTION {ex.Message}");
+            }
+            finally
+            {
+                // Remove temp avatar to avoid child accumulation across repeated serializations
+                if (added && avatarAdded != null && character.Children != null)
+                {
+                    character.Children.Remove(avatarAdded);
+                    Debug.Log("[Game] WriteGoSendPlayer: Removed temporary Avatar child post-serialize");
+                }
+            }
         }
 
         private async Task SendCharacterList(RRConnection conn)
         {
-            Debug.Log($"[Game] SendCharacterList: *** ENTRY *** Matching Go server exactly");
+            Debug.Log($"[Game] SendCharacterList: *** ENTRY *** Matching Go server exactly (minus crashy 4/1)");
 
             try
             {
@@ -721,6 +858,20 @@ namespace Server.Game
                 Debug.Log($"[Game] SendCharacterList: *** SENDING MESSAGE *** Total body length: {inner.Length} bytes");
                 Debug.Log($"[SEND][inner] CH=4,TYPE=3 : {BitConverter.ToString(inner)} (len={inner.Length})");
 
+                // PROOF CHECKS
+                if (inner.Length < 1000)
+                {
+                    Debug.LogError($"[Game][FATAL] SendCharacterList built only {inner.Length} bytes. First 16: {BitConverter.ToString(inner, 0, Math.Min(inner.Length, 16))}");
+                }
+                else if (!(inner.Length >= 2 && inner[0] == 0x04 && inner[1] == 0x03))
+                {
+                    Debug.LogError($"[Game][FATAL] SendCharacterList header wrong: {BitConverter.ToString(inner, 0, Math.Min(inner.Length, 8))}");
+                }
+                else
+                {
+                    Debug.Log($"[Game] SendCharacterList: Header OK (04-03), bytes={inner.Length}");
+                }
+
                 if (!(inner.Length >= 3 && inner[0] == 0x04 && inner[1] == 0x03))
                     Debug.LogWarning($"[Game] SendCharacterList: Header unexpected; got {BitConverter.ToString(inner.Take(3).ToArray())}");
                 else
@@ -730,10 +881,14 @@ namespace Server.Game
                 Debug.Log($"[Game] SendCharacterList: First {head} bytes: {BitConverter.ToString(inner, 0, head)}");
 
                 Debug.Log($"[SEND][A][prep] 4/3 using peer=0x{GetClientId24(conn.ConnId):X6} dest=0x01 sub=0x0F innerLen={inner.Length}");
-                LegacyWriters.WriteCompressedA(conn.Stream, (int)GetClientId24(conn.ConnId), 0x01, 0x0F, inner, 1);
+                await SendCompressedAResponseWithDump(conn, 0x01, 0x0F, inner, "charlist");
 
                 Debug.Log($"[Game] SendCharacterList: *** SUCCESS *** Sent Go format with {count} characters");
                 _charListSent[conn.ConnId] = true;
+
+                // IMPORTANT: DO NOT send 4/1 (Disconnected) — that caused the client crash in processGotCharacter.
+                Debug.Log("[Game] SendCharacterList: UI nudge 4/1 suppressed by protocol guard (prevents crash).");
+
             }
             catch (Exception ex)
             {
@@ -748,12 +903,11 @@ namespace Server.Game
 
             var createMessage = new LEWriter();
             createMessage.WriteByte(4);
-            createMessage.WriteByte(2);
-            createMessage.WriteByte(0);
+            createMessage.WriteByte(4); // 0x04 = Enter Character Creation Screen
 
             LegacyWriters.WriteCompressedA(conn.Stream, (int)GetClientId24(conn.ConnId), 0x01, 0x0F, createMessage.ToArray(), 1);
 
-            Debug.Log($"[Game] SendToCharacterCreation: Sent character creation initiation");
+            Debug.Log($"[Game] SendToCharacterCreation: Sent 4/4 enter creation");
         }
 
         private async Task HandleCharacterPlay(RRConnection conn, byte[] data)
@@ -887,7 +1041,7 @@ namespace Server.Game
                     var innerSingle = w.ToArray();
                     Debug.Log($"[SEND][inner] CH=4,TYPE=3 (updated single) : {BitConverter.ToString(innerSingle)} (len={innerSingle.Length})");
                     Debug.Log($"[SEND][A][prep] 4/3(using SINGLE) peer=0x{GetClientId24(conn.ConnId):X6} dest=0x01 sub=0x0F innerLen={innerSingle.Length}");
-                    LegacyWriters.WriteCompressedA(conn.Stream, (int)GetClientId24(conn.ConnId), 0x01, 0x0F, innerSingle, 1);
+                    await SendCompressedAResponseWithDump(conn, 0x01, 0x0F, innerSingle, "charlist_single");
                     Debug.Log($"[Game] SendUpdatedCharacterList: Sent updated character list (SINGLE fallback) with new character (ID {charId})");
                     return;
                 }
@@ -963,23 +1117,23 @@ namespace Server.Game
             switch (messageType)
             {
                 case 6:
-                    Debug.Log($"[Game] HandleZoneChannelMessages: Zone join request");
+                    Debug.Log($"[Game] HandleZoneJoin: Zone join request");
                     await HandleZoneJoin(conn);
                     break;
                 case 8:
-                    Debug.Log($"[Game] HandleZoneChannelMessages: Zone ready");
+                    Debug.Log($"[Game] HandleZoneReady: Zone ready");
                     await HandleZoneReady(conn);
                     break;
                 case 0:
-                    Debug.Log($"[Game] HandleZoneChannelMessages: Zone connected");
+                    Debug.Log($"[Game] HandleZoneConnected: Zone connected");
                     await HandleZoneConnected(conn);
                     break;
                 case 1:
-                    Debug.Log($"[Game] HandleZoneChannelMessages: Zone ready response");
+                    Debug.Log($"[Game] HandleZoneReadyResponse: Zone ready response");
                     await HandleZoneReadyResponse(conn);
                     break;
                 case 5:
-                    Debug.Log($"[Game] HandleZoneChannelMessages: Zone instance count");
+                    Debug.Log($"[Game] HandleZoneInstanceCount: Zone instance count");
                     await HandleZoneInstanceCount(conn);
                     break;
                 default:
@@ -1235,6 +1389,25 @@ namespace Server.Game
                 Debug.LogError($"[Game] SendCompressedAResponse: *** CRITICAL EXCEPTION *** {ex.Message}");
                 Debug.LogError($"[Game] SendCompressedAResponse: *** STACK TRACE *** {ex.StackTrace}");
             }
+        }
+
+        private async Task SendCompressedAResponseWithDump(RRConnection conn, byte dest, byte subType, byte[] innerData, string tag)
+        {
+            try
+            {
+                DumpUtil.DumpBlob(tag, "unity.uncompressed.bin", innerData);
+                DumpUtil.DumpCrc(tag, "uncompressed", innerData);
+
+                var compressed = ZlibUtil.Deflate(innerData);
+                DumpUtil.DumpBlob(tag, "unity.compressed.bin", compressed);
+                DumpUtil.DumpCrc(tag, "compressed", compressed);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[DUMP] Failed to write dumps for tag '{tag}': {ex.Message}");
+            }
+
+            await SendCompressedAResponse(conn, dest, subType, innerData);
         }
 
         private async Task<byte[]> SendMessage0x10(RRConnection conn, byte channel, byte[] body)
